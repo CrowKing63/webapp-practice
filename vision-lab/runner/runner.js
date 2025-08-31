@@ -51,15 +51,46 @@ const modeSel = document.getElementById('mode');
 const engineSel = document.getElementById('engine');
 const th = document.getElementById('threshold');
 const thVal = document.getElementById('thVal');
+const sustain = document.getElementById('sustain');
+const sustainVal = document.getElementById('sustainVal');
+const cooldown = document.getElementById('cooldown');
+const coolVal = document.getElementById('coolVal');
 const ratioEl = document.getElementById('ratio');
 const statusEl = document.getElementById('camStatus');
 const hintEl = document.getElementById('hint');
+const calibBtn = document.getElementById('calib');
 const video = document.getElementById('camView');
 const roi = document.getElementById('roi');
 const roictx = roi.getContext('2d');
 let camStream = null; let ratioEMA = 0;
 let engine = 'heuristic';
 let rafId = 0; // for engine loops
+// Trigger logic
+let armed = true; let aboveSince = 0; let cooldownUntil = 0;
+const hysteresis = 0.07; // threshold ± hysteresis for on/off
+let lastNow = performance.now();
+
+// Calibration
+let calibActive = false; let calibSum = 0; let calibCount = 0;
+
+// Performance controls
+const hasVFC = typeof HTMLVideoElement !== 'undefined' && 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
+const perf = { roiScale: 1.0, stride: 1, frameSkip: 0, lastProcMs: 0 };
+function tunePerf(procMs){
+  perf.lastProcMs = procMs;
+  // Heuristic target ~ 8ms per processing step
+  if (procMs > 14){
+    // too heavy → reduce resolution or increase stride/skip
+    if (perf.roiScale > 0.75) perf.roiScale = Math.max(0.75, perf.roiScale - 0.1);
+    else if (perf.stride < 3) perf.stride++;
+    else perf.frameSkip = Math.min(2, perf.frameSkip + 1);
+  } else if (procMs < 6){
+    // plenty headroom → improve quality
+    if (perf.frameSkip > 0) perf.frameSkip--;
+    else if (perf.stride > 1) perf.stride--;
+    else perf.roiScale = Math.min(1.0, perf.roiScale + 0.1);
+  }
+}
 
 function updateHint(){
   if (modeSel.value === 'smile'){
@@ -74,6 +105,10 @@ function updateHint(){
 modeSel.addEventListener('change', updateHint);
 engineSel.addEventListener('change', ()=>{ engine = engineSel.value; });
 th.addEventListener('input', ()=> { thVal.textContent = (+th.value).toFixed(2); });
+function updateTimes(){ sustainVal.textContent = sustain.value; coolVal.textContent = cooldown.value; }
+sustain.addEventListener('input', updateTimes);
+cooldown.addEventListener('input', updateTimes);
+updateTimes();
 updateHint();
 
 async function startCam(){
@@ -103,8 +138,11 @@ stopBtn.addEventListener('click', stopCam);
 
 function sampleLoop(){
   if (!camStream){ return; }
+  const t0 = performance.now();
   // Draw to ROI canvas and compute brightness metric in lower center box
-  const vw = 160, vh = 120; // downscale
+  const baseW = 160, baseH = 120;
+  const vw = Math.max(80, Math.round(baseW * perf.roiScale));
+  const vh = Math.max(60, Math.round(baseH * perf.roiScale));
   roi.width = vw; roi.height = vh;
   roictx.drawImage(video, 0, 0, vw, vh);
   const img = roictx.getImageData(0, 0, vw, vh);
@@ -117,8 +155,9 @@ function sampleLoop(){
   roictx.strokeStyle = '#6ca8ff'; roictx.lineWidth = 2; roictx.strokeRect(rx+0.5, ry+0.5, rw-1, rh-1);
   let dark = 0, total = 0;
   const data = img.data; const stride = vw * 4;
-  for (let y = ry; y < ry + rh; y++){
-    for (let x = rx; x < rx + rw; x++){
+  const step = Math.max(1, perf.stride);
+  for (let y = ry; y < ry + rh; y += step){
+    for (let x = rx; x < rx + rw; x += step){
       const i = y * stride + x * 4;
       const r = data[i], g = data[i+1], b = data[i+2];
       // luminance
@@ -131,11 +170,22 @@ function sampleLoop(){
   const brightRatio = 1 - darkRatio;
   // Smooth
   const current = (modeSel.value === 'smile') ? brightRatio : darkRatio;
+  if (calibActive){ calibSum += current; calibCount++; }
   ratioEMA = ratioEMA * 0.85 + current * 0.15;
   ratioEl.textContent = ratioEMA.toFixed(2);
-  const trigger = ratioEMA > +th.value;
-  if (trigger) jump();
-  rafId = requestAnimationFrame(sampleLoop);
+  handleTrigger();
+  const procMs = performance.now() - t0; tunePerf(procMs);
+  if (hasVFC){
+    let skipped = 0;
+    const vcb = () => {
+      if (!camStream) return;
+      if (skipped < perf.frameSkip){ skipped++; video.requestVideoFrameCallback(vcb); return; }
+      skipped = 0; sampleLoop();
+    };
+    video.requestVideoFrameCallback(vcb);
+  } else {
+    rafId = requestAnimationFrame(sampleLoop);
+  }
 }
 
 // MediaPipe Face Landmarker
@@ -158,10 +208,13 @@ async function ensureMediaPipe(){
 
 function mpLoop(){
   if (!camStream || !mp.ready){ return; }
+  const t0 = performance.now();
   const now = performance.now();
   const res = mp.landmarker.detectForVideo(video, now);
   let smileScore = 0;
+  let faceOk = false;
   if (res && res.faceBlendshapes && res.faceBlendshapes.length){
+    faceOk = true;
     const cats = res.faceBlendshapes[0].categories;
     let left = 0, right = 0;
     for (const c of cats){
@@ -170,11 +223,66 @@ function mpLoop(){
     }
     smileScore = (left + right) / 2;
   }
-  ratioEMA = ratioEMA * 0.85 + smileScore * 0.15;
+  const current = smileScore; // MediaPipe는 미소 점수 사용
+  if (calibActive){ calibSum += current; calibCount++; }
+  ratioEMA = ratioEMA * 0.85 + current * 0.15;
   ratioEl.textContent = ratioEMA.toFixed(2);
-  if (ratioEMA > +th.value) jump();
-  rafId = requestAnimationFrame(mpLoop);
+  statusEl.textContent = faceOk ? '동작 중(얼굴 감지)' : '얼굴 없음';
+  handleTrigger();
+  const procMs = performance.now() - t0; tunePerf(procMs);
+  if (hasVFC){
+    let skipped = 0;
+    const vcb = () => {
+      if (!camStream) return;
+      if (skipped < perf.frameSkip){ skipped++; video.requestVideoFrameCallback(vcb); return; }
+      skipped = 0; mpLoop();
+    };
+    video.requestVideoFrameCallback(vcb);
+  } else {
+    rafId = requestAnimationFrame(mpLoop);
+  }
 }
+
+function handleTrigger(){
+  const now = performance.now();
+  lastNow = now;
+  const T = +th.value;
+  const high = T; // entering threshold
+  const low = Math.max(0.05, T - hysteresis); // exit threshold
+  const needMs = +sustain.value;
+  const cdMs = +cooldown.value;
+
+  if (ratioEMA >= high){
+    if (!aboveSince) aboveSince = now;
+  } else {
+    aboveSince = 0;
+  }
+
+  if (armed && aboveSince && (now - aboveSince >= needMs) && (now >= cooldownUntil)){
+    jump();
+    armed = false;
+    cooldownUntil = now + cdMs;
+  }
+
+  if (!armed && ratioEMA <= low){
+    armed = true;
+    aboveSince = 0;
+  }
+}
+
+// Calibration: sample 1s neutral, set threshold = baseline + offset
+calibBtn.addEventListener('click', async ()=>{
+  calibActive = true; calibSum = 0; calibCount = 0;
+  statusEl.textContent = '보정 중(1초)';
+  await new Promise(r => setTimeout(r, 1000));
+  calibActive = false;
+  const baseline = calibCount ? (calibSum / calibCount) : ratioEMA;
+  let offset = (modeSel.value === 'smile') ? 0.15 : 0.12;
+  const newT = Math.max(0.05, Math.min(0.95, baseline + offset));
+  th.value = newT.toFixed(2);
+  thVal.textContent = (+th.value).toFixed(2);
+  statusEl.textContent = `보정 완료 (기준=${baseline.toFixed(2)})`;
+});
 
 // Spawning
 function spawn(){

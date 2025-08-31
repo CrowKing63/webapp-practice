@@ -48,6 +48,18 @@
           <input id="threshold" type="range" min="0.05" max="0.95" step="0.01" value="0.22" />
           <span class="num" id="thVal">0.22</span>
         </div>
+        <div class="row">
+          <label for="sustain">지속(ms)</label>
+          <input id="sustain" type="range" min="40" max="300" step="10" value="120" />
+          <span class="num" id="sustainVal">120</span>
+          <label for="cooldown">쿨다운(ms)</label>
+          <input id="cooldown" type="range" min="120" max="800" step="20" value="320" />
+          <span class="num" id="coolVal">320</span>
+        </div>
+        <div class="row">
+          <button id="calib">보정 1초</button>
+          <span class="hint">중립 표정으로 1초간 보정 후 임계값 자동 설정</span>
+        </div>
         <div class="hint" id="hint">정면에서 중앙 가이드에 얼굴을 맞추고 입을 벌려 보세요. Vision Pro Safari는 카메라 권한이 제한될 수 있습니다.</div>
       </div>
       <div class="preview">
