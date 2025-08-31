@@ -29,10 +29,16 @@ jobs:
         with:
           enablement: true
 
-      - name: Upload artifact (vision-survivor)
+      - name: Prepare site (vision-survivor + vision-lab)
+        run: |
+          mkdir -p _site
+          cp -R vision-survivor/. _site/
+          if [ -d vision-lab ]; then cp -R vision-lab _site/; fi
+
+      - name: Upload artifact (_site)
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./vision-survivor
+          path: ./_site
 
       - name: Deploy to GitHub Pages
         id: deployment

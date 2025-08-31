@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Vision Lab – Runner (웹캠 베타)</title>
+    <link rel="stylesheet" href="../style.css" />
+    <style>
+      #game{display:block;width:100vw;height:60vh;background:#0b0f16}
+      .panel{max-width:920px;margin:12px auto;padding:12px 16px;border:1px solid #203050;border-radius:16px;background:var(--panel)}
+      .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+      .controls > *{margin:4px 0}
+      .preview{display:flex;gap:12px;align-items:center}
+      #camView{width:160px;height:120px;background:#000;border-radius:8px;object-fit:cover}
+      .hint{color:var(--muted)}
+      .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+      .num{min-width:42px;display:inline-block;text-align:right}
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Runner (웹캠 베타)</h1>
+      <p class="sub">스페이스/탭/핀치로 점프. "웹캠 입력"을 켜면 입 벌림으로 점프(실험적).</p>
+    </header>
+
+    <canvas id="game"></canvas>
+
+    <section class="panel">
+      <div class="controls">
+        <button id="startCam">웹캠 입력 시작</button>
+        <button id="stopCam" disabled>중지</button>
+        <div class="row">
+          <label for="engine">인식 엔진</label>
+          <select id="engine">
+            <option value="heuristic">휴리스틱(빠름, 조명 민감)</option>
+            <option value="mediapipe">MediaPipe(정확, 초기 로드 필요)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="mode">입력 모드</label>
+          <select id="mode">
+            <option value="open">입 벌림(어두움↑)</option>
+            <option value="smile">미소(밝음↑)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="threshold">임계값</label>
+          <input id="threshold" type="range" min="0.05" max="0.95" step="0.01" value="0.22" />
+          <span class="num" id="thVal">0.22</span>
+        </div>
+        <div class="hint" id="hint">정면에서 중앙 가이드에 얼굴을 맞추고 입을 벌려 보세요. Vision Pro Safari는 카메라 권한이 제한될 수 있습니다.</div>
+      </div>
+      <div class="preview">
+        <video id="camView" playsinline muted></video>
+        <canvas id="roi" width="160" height="120"></canvas>
+        <div>
+          <div>ratio: <span id="ratio">0.00</span></div>
+          <div>상태: <span id="camStatus">꺼짐</span></div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <a href="../">목록으로</a>
+    </footer>
+
+    <script type="module" src="./runner.js"></script>
+  </body>
+  </html>

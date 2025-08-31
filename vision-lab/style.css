@@ -1,0 +1,30 @@
+:root{
+  color-scheme: dark;
+  --bg:#0b0f16; --fg:#e6eeff; --muted:#9fb4dd; --accent:#6ca8ff; --panel:#101826cc;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:500 15px/1.5 ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, sans-serif}
+header{padding:calc(env(safe-area-inset-top,12px) + 8px) 16px 8px}
+h1{margin:0 0 4px;font:800 28px/1.2 ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, sans-serif}
+.sub{margin:0;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;padding:16px}
+.card{display:block;border:1px solid #203050;border-radius:16px;padding:16px;background:var(--panel);color:inherit;text-decoration:none}
+.card:hover{outline:2px solid #2d4780}
+footer{position:fixed;left:env(safe-area-inset-left,12px);right:env(safe-area-inset-right,12px);bottom:calc(env(safe-area-inset-bottom,12px));opacity:.7;display:flex;gap:10px;justify-content:center;padding:10px}
+.sep{opacity:.5}
+
+/* Dwell demo */
+.dwell-area{display:grid;place-items:center;min-height:60vh;padding:16px}
+.dwell-btn{position:relative;display:inline-grid;place-items:center;width:140px;height:56px;border-radius:14px;background:#1a2740;border:1px solid #2a3c60;color:var(--fg);font-weight:700}
+.dwell-ring{position:absolute;inset:-6px;border-radius:16px;border:3px solid #2a3c60}
+.dwell-ring .progress{position:absolute;inset:-3px;border-radius:16px;border:3px solid var(--accent);clip-path:polygon(50% 50%, 50% 0, 100% 0, 100% 100%, 0 100%, 0 0, 50% 0)}
+.msg{margin-top:12px;color:var(--muted)}
+
+/* AR page */
+.ar-box{margin:40px auto;max-width:720px;border:1px solid #203050;border-radius:16px;background:var(--panel);padding:20px}
+.ar-actions{display:flex;gap:12px;flex-wrap:wrap}
+.ar-actions a{display:inline-block;padding:12px 16px;border-radius:12px;background:#1a2740;border:1px solid #2a3c60;color:var(--fg);text-decoration:none}
+
+/* Ensure overlay hidden works if used */
+[hidden]{display:none !important}
+

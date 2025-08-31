@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Vision Lab – AR Quick Look</title>
+    <meta name="description" content="USDZ 3D 모델을 Vision Pro 공간에 배치" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>AR Quick Look</h1>
+      <p class="sub">USDZ 링크를 통해 공간에 3D 모델 배치(visionOS Safari 권장)</p>
+    </header>
+
+    <main class="ar-box">
+      <p>
+        아래 버튼은 Apple의 공개 샘플 USDZ로 연결됩니다. Vision Pro Safari에서 열면 Quick Look이 실행되어 공간에 배치할 수 있습니다.
+      </p>
+      <div class="ar-actions">
+        <a rel="ar" href="https://developer.apple.com/augmented-reality/quick-look/models/biplane/toy_biplane.usdz">공간에 보기(샘플 비행기)</a>
+        <a rel="ar" href="https://developer.apple.com/augmented-reality/quick-look/models/teapot/teapot.usdz">공간에 보기(찻주전자)</a>
+      </div>
+      <p class="msg">자체 모델을 쓰려면 `.usdz` 파일을 `vision-lab/assets/`에 두고, 위 링크의 `href`를 해당 경로로 바꾸세요.</p>
+    </main>
+
+    <footer>
+      <a href="./">목록으로</a>
+    </footer>
+  </body>
+  </html>
+

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Vision Lab – Dwell 선택</title>
+    <meta name="description" content="포인터 머무름 기반의 선택(시선 고정) 데모" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Dwell 선택</h1>
+      <p class="sub">시선으로 버튼에 커서를 올려 머무르면 자동 활성화</p>
+    </header>
+
+    <main class="dwell-area">
+      <button class="dwell-btn" id="dwellBtn" aria-label="실행">
+        <span>실행</span>
+        <span class="dwell-ring" aria-hidden="true"><span class="progress" id="ringProgress"></span></span>
+      </button>
+      <div class="msg" id="msg">버튼 위에 시선을 올려 1초간 머무르세요. 핀치/클릭도 동작합니다.</div>
+    </main>
+
+    <footer>
+      <a href="./">목록으로</a>
+    </footer>
+
+    <script>
+      const btn = document.getElementById('dwellBtn');
+      const msg = document.getElementById('msg');
+      const ring = document.getElementById('ringProgress');
+      let dwellTimer = null;
+      let start = 0;
+      const dwellMs = 1000;
+      let raf = 0;
+
+      function setProgress(p){
+        const deg = Math.floor(360 * Math.max(0, Math.min(1, p)));
+        ring.style.mask = `conic-gradient(white ${deg}deg, transparent ${deg}deg)`;
+        ring.style.webkitMask = ring.style.mask;
+      }
+
+      function trigger(){
+        setProgress(1);
+        msg.textContent = '실행됨 ✔';
+        btn.animate([{transform:'scale(1)'},{transform:'scale(1.05)'},{transform:'scale(1)'}],{duration:220});
+        // 사용자 동작 예시: 진동/사운드 없음 → 배경 색 잠깐 교체
+        document.body.animate([{background:'#0b0f16'},{background:'#0e1420'},{background:'#0b0f16'}],{duration:300});
+      }
+
+      function cleanup(){
+        if (dwellTimer){ clearTimeout(dwellTimer); dwellTimer = null; }
+        cancelAnimationFrame(raf);
+        setProgress(0);
+      }
+
+      btn.addEventListener('pointerenter', () => {
+        start = performance.now();
+        setProgress(0);
+        raf = requestAnimationFrame(function loop(now){
+          const p = (now - start) / dwellMs;
+          setProgress(p);
+          if (p < 1) raf = requestAnimationFrame(loop);
+        });
+        dwellTimer = setTimeout(() => { trigger(); }, dwellMs);
+      });
+      btn.addEventListener('pointerleave', cleanup);
+      btn.addEventListener('pointerdown', () => { cleanup(); trigger(); });
+    </script>
+  </body>
+  </html>
+
