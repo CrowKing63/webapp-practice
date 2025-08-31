@@ -59,6 +59,11 @@ html, body {
   background: #00000080;
 }
 
+/* Ensure overlay truly hides when [hidden] is set (Safari/VisionOS) */
+#overlay[hidden] {
+  display: none !important;
+}
+
 .panel {
   background: var(--panel);
   border: 1px solid #22304a;
@@ -78,4 +83,3 @@ html, body {
   font: 400 14px/1.4 ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   opacity: 0.75;
 }
-
