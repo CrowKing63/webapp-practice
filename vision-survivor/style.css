@@ -64,6 +64,20 @@ html, body {
   display: none !important;
 }
 
+#lablink {
+  position: fixed;
+  right: env(safe-area-inset-right, 12px);
+  bottom: calc(env(safe-area-inset-bottom, 12px) + 8px);
+  background: var(--panel);
+  border: 1px solid #22304a;
+  border-radius: 12px;
+  padding: 8px 12px;
+  pointer-events: auto;
+}
+
+#lablink a { color: var(--fg); text-decoration: none; opacity: 0.85; }
+#lablink a:hover { opacity: 1; }
+
 .panel {
   background: var(--panel);
   border: 1px solid #22304a;
