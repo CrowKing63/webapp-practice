@@ -1,0 +1,81 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b0f16;
+  --fg: #dfe7ff;
+  --accent: #6ca8ff;
+  --danger: #ff6b6b;
+  --panel: #0f1623cc;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#game {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  touch-action: manipulation;
+  cursor: crosshair;
+}
+
+#hud {
+  position: fixed;
+  top: env(safe-area-inset-top, 12px);
+  left: env(safe-area-inset-left, 12px);
+  right: env(safe-area-inset-right, 12px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  color: var(--fg);
+  font: 600 14px/1.2 ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  pointer-events: none;
+}
+
+#title {
+  opacity: 0.8;
+}
+
+#stats span + span {
+  margin-left: 12px;
+}
+
+#help {
+  opacity: 0.6;
+}
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #00000080;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid #22304a;
+  border-radius: 16px;
+  padding: 24px 28px;
+  color: var(--fg);
+  text-align: center;
+  backdrop-filter: saturate(1.2) blur(10px);
+}
+
+.panel .big {
+  font: 700 28px/1.2 ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  margin-bottom: 8px;
+}
+
+.panel .small {
+  font: 400 14px/1.4 ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  opacity: 0.75;
+}
+

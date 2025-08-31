@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Vision Survivor v1</title>
+    <meta name="description" content="Point & Click Survivor prototype for Vision Pro" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div id="hud">
+      <div id="title">Vision Survivor v1</div>
+      <div id="stats">
+        <span id="hp">HP: 100</span>
+        <span id="score">Score: 0</span>
+      </div>
+      <div id="help">
+        화면을 탭/클릭하여 이동 • 자동 공격 • P: 일시정지
+      </div>
+    </div>
+
+    <canvas id="game"></canvas>
+
+    <div id="overlay" hidden>
+      <div class="panel">
+        <div class="big">Game Over</div>
+        <div class="small">화면을 탭/클릭하여 다시 시작</div>
+      </div>
+    </div>
+
+    <script src="./main.js"></script>
+  </body>
+  </html>
+
