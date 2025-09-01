@@ -44,7 +44,7 @@ function jump(){
 window.addEventListener('keydown', (e)=>{ if (e.code === 'Space' || e.code === 'ArrowUp') jump(); });
 canvas.addEventListener('pointerdown', ()=> jump(), { passive:true });
 
-// Webcam beta: naive mouth-open ratio from center-lower ROI
+// Webcam beta: naive mouth-open ratio from full-frame analysis
 const startBtn = document.getElementById('startCam');
 const stopBtn = document.getElementById('stopCam');
 const modeSel = document.getElementById('mode');
@@ -97,7 +97,7 @@ function updateHint(){
     hintEl.textContent = '정면을 보고 미소를 지어 치아가 드러나면 점프(밝음 비율 임계값).';
     if (+th.value < 0.3) th.value = 0.55; // sensible default for smile
   } else {
-    hintEl.textContent = '정면에서 중앙 가이드에 얼굴을 맞추고 입을 벌리면 점프(어두움 비율 임계값).';
+    hintEl.textContent = '정면을 보고 입을 벌리면 점프(어두움 비율 임계값).';
     if (+th.value > 0.6) th.value = 0.22; // sensible default for open
   }
   thVal.textContent = (+th.value).toFixed(2);
@@ -139,37 +139,51 @@ stopBtn.addEventListener('click', stopCam);
 function sampleLoop(){
   if (!camStream){ return; }
   const t0 = performance.now();
-  // Draw to ROI canvas and compute brightness metric in lower center box
-  const baseW = 160, baseH = 120;
-  const vw = Math.max(80, Math.round(baseW * perf.roiScale));
-  const vh = Math.max(60, Math.round(baseH * perf.roiScale));
+  // Draw to ROI canvas and compute brightness metric over full frame
+  const vwSrc = video.videoWidth || 160;
+  const vhSrc = video.videoHeight || 120;
+  const vw = Math.max(80, Math.round(vwSrc * perf.roiScale));
+  const vh = Math.max(60, Math.round(vhSrc * perf.roiScale));
   roi.width = vw; roi.height = vh;
-  roictx.drawImage(video, 0, 0, vw, vh);
+  roictx.drawImage(video, 0, 0, vwSrc, vhSrc, 0, 0, vw, vh);
   const img = roictx.getImageData(0, 0, vw, vh);
-  // Define ROI roughly where mouth would be if face centered: center X, lower Y
-  const rw = Math.floor(vw * 0.36);
-  const rh = Math.floor(vh * 0.26);
-  const rx = Math.floor((vw - rw)/2);
-  const ry = Math.floor(vh * 0.56);
+  // Analyze entire frame
   // Visualize ROI
-  roictx.strokeStyle = '#6ca8ff'; roictx.lineWidth = 2; roictx.strokeRect(rx+0.5, ry+0.5, rw-1, rh-1);
-  let dark = 0, total = 0;
+  roictx.strokeStyle = '#6ca8ff'; roictx.lineWidth = 2; roictx.strokeRect(0.5, 0.5, vw-1, vh-1);
   const data = img.data; const stride = vw * 4;
   const step = Math.max(1, perf.stride);
-  for (let y = ry; y < ry + rh; y += step){
-    for (let x = rx; x < rx + rw; x += step){
-      const i = y * stride + x * 4;
-      const r = data[i], g = data[i+1], b = data[i+2];
-      // luminance
-      const Y = 0.2126*r + 0.7152*g + 0.0722*b;
-      if (Y < 70) dark++;
-      total++;
+  const blocksX = 3, blocksY = 3;
+  const bw = Math.floor(vw / blocksX);
+  const bh = Math.floor(vh / blocksY);
+  let bestDark = 0, bestBright = 0;
+
+  for (let by = 0; by < blocksY; by++){
+    for (let bx = 0; bx < blocksX; bx++){
+      let dark = 0, bright = 0, total = 0;
+      const sy = by * bh;
+      const sx = bx * bw;
+      const ey = (by === blocksY - 1) ? vh : sy + bh;
+      const ex = (bx === blocksX - 1) ? vw : sx + bw;
+      for (let y = sy; y < ey; y += step){
+        for (let x = sx; x < ex; x += step){
+          const i = y * stride + x * 4;
+          const r = data[i], g = data[i+1], b = data[i+2];
+          const Y = 0.2126*r + 0.7152*g + 0.0722*b;
+          if (Y < 70) dark++;
+          if (Y > 180) bright++;
+          total++;
+        }
+      }
+      if (total){
+        const d = dark / total;
+        const br = bright / total;
+        if (d > bestDark) bestDark = d;
+        if (br > bestBright) bestBright = br;
+      }
     }
   }
-  const darkRatio = total ? dark/total : 0;
-  const brightRatio = 1 - darkRatio;
+  const current = (modeSel.value === 'smile') ? bestBright : bestDark;
   // Smooth
-  const current = (modeSel.value === 'smile') ? brightRatio : darkRatio;
   if (calibActive){ calibSum += current; calibCount++; }
   ratioEMA = ratioEMA * 0.85 + current * 0.15;
   ratioEl.textContent = ratioEMA.toFixed(2);
@@ -365,13 +379,6 @@ function draw(){
     ctx.fillText('Game Over - 탭/스페이스로 재시작', 40, 80);
   }
 
-  // Camera guide overlay (if active)
-  if (camStream){
-    ctx.strokeStyle = '#2d4780'; ctx.lineWidth = 2; const gw = 140, gh = 80; const gx = w - gw - 16, gy = 16;
-    ctx.strokeRect(gx+0.5, gy+0.5, gw-1, gh-1);
-    ctx.fillStyle = '#9fb4dd'; ctx.font = '600 12px ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
-    ctx.fillText('얼굴 중앙 정렬', gx + 10, gy + gh + 14);
-  }
 }
 
 function loop(now){ update(now); draw(); requestAnimationFrame(loop); }
