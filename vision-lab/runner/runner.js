@@ -44,7 +44,7 @@ function jump(){
 window.addEventListener('keydown', (e)=>{ if (e.code === 'Space' || e.code === 'ArrowUp') jump(); });
 canvas.addEventListener('pointerdown', ()=> jump(), { passive:true });
 
-// Webcam beta: naive mouth-open ratio from center-lower ROI
+// Webcam beta: naive mouth-open ratio from full-frame analysis
 const startBtn = document.getElementById('startCam');
 const stopBtn = document.getElementById('stopCam');
 const modeSel = document.getElementById('mode');
@@ -97,7 +97,7 @@ function updateHint(){
     hintEl.textContent = '정면을 보고 미소를 지어 치아가 드러나면 점프(밝음 비율 임계값).';
     if (+th.value < 0.3) th.value = 0.55; // sensible default for smile
   } else {
-    hintEl.textContent = '정면에서 중앙 가이드에 얼굴을 맞추고 입을 벌리면 점프(어두움 비율 임계값).';
+    hintEl.textContent = '정면을 보고 입을 벌리면 점프(어두움 비율 임계값).';
     if (+th.value > 0.6) th.value = 0.22; // sensible default for open
   }
   thVal.textContent = (+th.value).toFixed(2);
@@ -139,20 +139,20 @@ stopBtn.addEventListener('click', stopCam);
 function sampleLoop(){
   if (!camStream){ return; }
   const t0 = performance.now();
-  // Draw to ROI canvas and compute brightness metric in lower center box
+  // Draw to ROI canvas and compute brightness metric over full frame
   const baseW = 160, baseH = 120;
   const vw = Math.max(80, Math.round(baseW * perf.roiScale));
   const vh = Math.max(60, Math.round(baseH * perf.roiScale));
   roi.width = vw; roi.height = vh;
   roictx.drawImage(video, 0, 0, vw, vh);
   const img = roictx.getImageData(0, 0, vw, vh);
-  // Define ROI roughly where mouth would be if face centered: center X, lower Y
-  const rw = Math.floor(vw * 0.36);
-  const rh = Math.floor(vh * 0.26);
-  const rx = Math.floor((vw - rw)/2);
-  const ry = Math.floor(vh * 0.56);
+  // Analyze entire frame
+  const rw = vw;
+  const rh = vh;
+  const rx = 0;
+  const ry = 0;
   // Visualize ROI
-  roictx.strokeStyle = '#6ca8ff'; roictx.lineWidth = 2; roictx.strokeRect(rx+0.5, ry+0.5, rw-1, rh-1);
+  roictx.strokeStyle = '#6ca8ff'; roictx.lineWidth = 2; roictx.strokeRect(0.5, 0.5, vw-1, vh-1);
   let dark = 0, total = 0;
   const data = img.data; const stride = vw * 4;
   const step = Math.max(1, perf.stride);
@@ -365,13 +365,6 @@ function draw(){
     ctx.fillText('Game Over - 탭/스페이스로 재시작', 40, 80);
   }
 
-  // Camera guide overlay (if active)
-  if (camStream){
-    ctx.strokeStyle = '#2d4780'; ctx.lineWidth = 2; const gw = 140, gh = 80; const gx = w - gw - 16, gy = 16;
-    ctx.strokeRect(gx+0.5, gy+0.5, gw-1, gh-1);
-    ctx.fillStyle = '#9fb4dd'; ctx.font = '600 12px ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
-    ctx.fillText('얼굴 중앙 정렬', gx + 10, gy + gh + 14);
-  }
 }
 
 function loop(now){ update(now); draw(); requestAnimationFrame(loop); }
