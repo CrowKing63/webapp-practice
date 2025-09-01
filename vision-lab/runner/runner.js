@@ -138,18 +138,18 @@ stopBtn.addEventListener('click', stopCam);
 
 function sampleLoop(){
   if (!camStream){ return; }
+  const vwSrc = video.videoWidth;
+  const vhSrc = video.videoHeight;
+  if (!vwSrc || !vhSrc){
+    rafId = requestAnimationFrame(sampleLoop);
+    return;
+  }
   const t0 = performance.now();
-  // Draw to ROI canvas and compute brightness metric over full frame
-  const vwSrc = video.videoWidth || 160;
-  const vhSrc = video.videoHeight || 120;
   const vw = Math.max(80, Math.round(vwSrc * perf.roiScale));
   const vh = Math.max(60, Math.round(vhSrc * perf.roiScale));
   roi.width = vw; roi.height = vh;
   roictx.drawImage(video, 0, 0, vwSrc, vhSrc, 0, 0, vw, vh);
   const img = roictx.getImageData(0, 0, vw, vh);
-  // Analyze entire frame
-  // Visualize ROI
-  roictx.strokeStyle = '#6ca8ff'; roictx.lineWidth = 2; roictx.strokeRect(0.5, 0.5, vw-1, vh-1);
   const data = img.data; const stride = vw * 4;
   const step = Math.max(1, perf.stride);
   const blocksX = 3, blocksY = 3;
